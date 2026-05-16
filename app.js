@@ -12,8 +12,16 @@ const defaultMmiColors = {
 
 async function init() {
     try {
-        // Riktig tilkobling til Workspace API
+        // Sjekker om vi faktisk kjører inne i en iframe før vi prøver å koble til
+        if (window.self === window.top) {
+            throw new Error("Utvidelsen kjører ikke inne i Trimble Connect (ikke i en iframe).");
+        }
+
+        document.getElementById("status-msg").innerText = "Prøver å koble til Workspace API...";
+        
+        // Kobler til Trimble Connect Workspace
         workspaceApi = await TrimbleConnectWorkspace.connect(window.parent);
+        
         document.getElementById("status-msg").innerText = "Tilkoblet. Laster data...";
         
         await scanModelForMmi();
@@ -23,9 +31,17 @@ async function init() {
         document.getElementById("status-msg").innerText = "Ferdig!";
         
     } catch (error) {
-        console.error("Kunne ikke koble til API:", error);
-        document.getElementById("status-msg").innerText = "Feil: Kunne ikke koble til 3D-vieweren.";
-        document.getElementById("status-msg").style.color = "red";
+        console.error("Detaljert feilmelding ved tilkobling:", error);
+        
+        const statusEl = document.getElementById("status-msg");
+        statusEl.style.color = "red";
+        
+        // Viser en mer spesifikk feilmelding i grensesnittet
+        if (error.message.includes("ikke i en iframe")) {
+            statusEl.innerText = "Feil: Koden må kjøres som en utvidelse inne i Trimble Connect, ikke som en frittstående fane.";
+        } else {
+            statusEl.innerText = "Feil: Kunne ikke koble til 3D-vieweren. Sjekk konsollen for detaljer.";
+        }
     }
 }
 
