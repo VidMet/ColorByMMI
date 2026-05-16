@@ -1,66 +1,315 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="nb">
 <head>
-    <meta charset="UTF-8">
-    <title>MMI Fargekoder</title>
+  <meta charset="UTF-8"/>
+  <title>MMI Fargekoder v1.01</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  
+  <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1f2937;
+      --border:    #30363d;
+      --ink:       #e6edf3;
+      --muted:     #7d8590;
+      --green:     #3fb950;
+      --green-dim: #1a3a22;
+      --blue:      #58a6ff;
+      --blue-dim:  #0d2044;
+      --red:       #f85149;
+      --red-dim:   #3a1212;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Syne', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .header-title { flex: 1; }
+    .header-title h1 { font-size: 16px; font-weight: 800; letter-spacing: -.3px; color: var(--ink); }
+    .header-title p { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+    .badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+
+    .btn { font-family: var(--sans); font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; transition: opacity .15s, transform .1s; white-space: nowrap; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn:not(:disabled):hover { opacity: .85; }
+    .btn:not(:disabled):active { transform: scale(.97); }
+    .btn-primary { background: var(--blue); color: #000; }
+    .btn-ghost   { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
+    .btn-colorize { background: #1a3a22; color: var(--green); border: 1px solid #2a5a32; }
+    .btn-unreset  { background: #1f2937; color: var(--muted); border: 1px solid var(--border); }
+
+    #statusBar { font-family: var(--mono); font-size: 11px; padding: 6px 16px; background: var(--blue-dim); color: var(--blue); border-bottom: 1px solid #1a3a5c; flex-shrink: 0; }
+    #statusBar.ok    { background: var(--green-dim); color: var(--green); border-color: #1a3a22; }
+    #statusBar.error { background: var(--red-dim);   color: var(--red);   border-color: #3a1212; }
+
+    #modelBar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; gap: 15px; align-items: center; flex-shrink: 0; }
+    .select-group { display: flex; align-items: center; gap: 8px; flex: 1; }
+    #modelBar label { font-size: 11px; color: var(--muted); font-family: var(--mono); white-space: nowrap; }
+    select { font-family: var(--mono); font-size: 12px; background: var(--surface2); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; width: 100%; min-width: 0; }
+    select:disabled { opacity: .4; }
+
+    main { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .panel-header { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .panel-header h3 { font-size: 13px; font-weight: 700; flex: 1; }
     
-    <!-- Laster inn Trimble Connect Workspace API på riktig måte -->
-    <script src="https://unpkg.com/@trimble-oss/trimble-connect-workspace-api@latest/dist/index.js"></script>
+    .mmi-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    .mmi-row:last-child { border-bottom: none; }
+    .mmi-label { font-size: 13px; font-weight: 600; }
+    .mmi-count { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-left: 8px; }
     
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 15px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        h3 {
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 5px;
-        }
-        .mmi-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 10px;
-            background: #fff;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        select {
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #005f9e;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
-        button:hover {
-            background-color: #004675;
-        }
-        #status-msg {
-            font-style: italic;
-            color: #555;
-            margin-bottom: 10px;
-        }
-    </style>
+    /* Tilpasset input for fargevelger */
+    input[type="color"] { -webkit-appearance: none; border: none; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; padding: 0; background: none; }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 4px; }
+
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+    .anim { animation: fadeUp .3s ease both; }
+  </style>
 </head>
 <body>
 
-    <h3>MMI Status</h3>
-    <div id="status-msg">Kobler til Trimble Connect...</div>
-    <div id="mmi-list"></div>
-    <button id="btn-reset">Nullstill Farger</button>
+<header>
+  <div class="header-title">
+    <h1>MMI Fargekoder</h1>
+    <p>Dynamisk fargelegging basert på Model Maturity Index</p>
+  </div>
+  <span class="badge" id="modelBadge">Frakoblet</span>
+  <button class="btn btn-ghost" id="btnLoad" disabled>Hent modeller</button>
+  <button class="btn btn-primary" id="btnScan" disabled>▶ Skann MMI</button>
+  <button class="btn btn-colorize" id="btnColorize" disabled>🎨 Fargelegg</button>
+  <button class="btn btn-unreset" id="btnUncolor" disabled>⬜ Nullstill Farger</button>
+</header>
 
-    <!-- Laster inn logikken som en modul -->
-    <script type="module" src="./app.js"></script>
+<div id="statusBar">Kobler til Trimble Connect...</div>
+
+<div id="modelBar">
+  <div class="select-group">
+    <label>Modell:</label>
+    <select id="modelSelect" disabled><option value="">– Laster... –</option></select>
+  </div>
+</div>
+
+<main id="mainContent">
+  <div class="empty anim">Hent modeller, velg en modell fra menyen og trykk <strong>Skann MMI</strong>.</div>
+</main>
+
+<script>
+let API = null;
+let allModels = [];
+let mmiDataMap = new Map(); // Lagrer { mmiVerdi: { color: hex, objects: [ids] } }
+
+const $ = id => document.getElementById(id);
+const setStatus = (m, c='') => { $('statusBar').textContent = m; $('statusBar').className = c; };
+
+// Standardfarger for kjente MMI-verdier
+const defaultColors = {
+    "100": "#cccccc", // Grå
+    "200": "#58a6ff", // Blå
+    "300": "#d29922", // Gul/Oransje
+    "400": "#3fb950", // Grønn
+    "500": "#a371f7"  // Lilla
+};
+
+// Hjelpefunksjon for å konvertere Hex (#ff0000) til RGBA for Trimble API
+function hexToRgba(hex) {
+    let c;
+    if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
+        c= hex.substring(1).split('');
+        if(c.length== 3){ c= [c[0], c[0], c[1], c[1], c[2], c[2]]; }
+        c= '0x'+c.join('');
+        return { r: (c>>16)&255, g: (c>>8)&255, b: c&255, a: 255 };
+    }
+    return { r: 128, g: 128, b: 128, a: 255 }; // Fallback grå
+}
+
+// 1. Initialisering (Samme som i din referansefil)
+async function connect(){
+  try {
+    API = await window.TrimbleConnectWorkspace.connect(window.parent);
+    $('btnLoad').disabled = false;
+    $('btnScan').disabled = false;
+    setStatus('✅ Tilkoblet Trimble Connect.', 'ok');
+    $('modelBadge').textContent = 'Tilkoblet';
+  } catch(e) { setStatus('❌ Kunne ikke koble til API.', 'error'); }
+}
+
+// 2. Laster inn modeller (Samme som i din referansefil)
+async function loadModels(){
+  if (!API) return;
+  setStatus('⏳ Leser modeller...');
+  try {
+    const objs = await API.viewer.getObjects();
+    allModels = (objs || []).map(m => {
+      return {
+        id: m.modelId || m.modelid,
+        name: m.name || 'Ukjent modell',
+        objectIds: (m.objects || []).map(o => o.id || o.objectRuntimeId).filter(id => id != null)
+      };
+    }).filter(m => m.objectIds.length > 0);
+
+    $('modelSelect').innerHTML = allModels.map(m => `<option value="${m.id}">${m.name} (${m.objectIds.length} obj)</option>`).join('');
+    $('modelSelect').disabled = false;
+    setStatus('✅ Modeller hentet.', 'ok');
+  } catch(e) { setStatus('❌ Feil ved henting: ' + e.message, 'error'); }
+}
+
+// 3. Skanner modellen for MMI (Bygget på din chunk-struktur)
+async function scanMmi(){
+  const mid = $('modelSelect').value;
+  if (!mid || !API) return;
+  
+  setStatus('⏳ Skanner objekter for MMI-verdier...');
+  $('btnColorize').disabled = true; 
+  $('btnUncolor').disabled = true;
+  mmiDataMap.clear();
+  
+  try {
+    const model = allModels.find(m => m.id === mid);
+    const CHUNK = 200; // Unngår overbelastning, akkurat som du gjorde
+    let objCount = 0;
+
+    for (let i = 0; i < model.objectIds.length; i += CHUNK) {
+      const propsArr = await API.viewer.getObjectProperties(mid, model.objectIds.slice(i, i + CHUNK));
+      
+      propsArr.forEach(o => {
+        const flat = {};
+        // Flater ut egenskapene akkurat som i valideringsverktøyet
+        (o.properties || []).forEach(g => (g.properties || []).forEach(p => flat[p.name] = p.value));
+        
+        let mmiValue = flat["MMI"];
+        if (mmiValue !== undefined && mmiValue !== null && mmiValue.toString().trim() !== "") {
+            mmiValue = mmiValue.toString().trim();
+            
+            if (!mmiDataMap.has(mmiValue)) {
+                mmiDataMap.set(mmiValue, {
+                    color: defaultColors[mmiValue] || "#ff00ff", // Magenta som fallback
+                    objects: []
+                });
+            }
+            mmiDataMap.get(mmiValue).objects.push(o.id || o.objectRuntimeId);
+            objCount++;
+        }
+      });
+      setStatus(`⏳ Skanner... ${Math.min(i+CHUNK, model.objectIds.length)} / ${model.objectIds.length}`);
+    }
+
+    renderUi();
+    setStatus(`✅ Fant ${mmiDataMap.size} ulike MMI-verdier på tvers av ${objCount} objekter.`, 'ok');
+    $('btnColorize').disabled = false;
+    $('btnUncolor').disabled = false;
+  } catch(e) { 
+      setStatus('❌ Feil: ' + e.message, 'error'); 
+      console.error(e); 
+  }
+}
+
+// 4. Bygger UI dynamisk
+function renderUi() {
+    if (mmiDataMap.size === 0) {
+        $('mainContent').innerHTML = '<div class="empty anim">Fant ingen MMI-verdier i valgt modell.</div>';
+        return;
+    }
+
+    // Sorterer MMI-verdiene alfabetisk/numerisk
+    const sortedKeys = Array.from(mmiDataMap.keys()).sort();
+
+    let html = `
+    <div class="panel anim">
+        <div class="panel-header"><h3>MMI Verdier og Farger</h3></div>
+        <div id="mmiList">
+    `;
+
+    sortedKeys.forEach(mmi => {
+        const data = mmiDataMap.get(mmi);
+        html += `
+        <div class="mmi-row">
+            <div>
+                <span class="mmi-label">MMI ${mmi}</span>
+                <span class="mmi-count">(${data.objects.length} objekter)</span>
+            </div>
+            <input type="color" data-mmi="${mmi}" value="${data.color}" onchange="updateColor(this)">
+        </div>
+        `;
+    });
+
+    html += `</div></div>`;
+    $('mainContent').innerHTML = html;
+}
+
+// Oppdaterer ordboken når brukeren endrer en farge
+window.updateColor = function(inputElement) {
+    const mmi = inputElement.getAttribute('data-mmi');
+    const nyFarge = inputElement.value;
+    if (mmiDataMap.has(mmi)) {
+        mmiDataMap.get(mmi).color = nyFarge;
+    }
+};
+
+// 5. Fargelegger ved hjelp av Trimble sin objekt-state funksjon
+async function colorizeModel(){
+  if (!API || mmiDataMap.size === 0) return;
+  const mid = $('modelSelect').value;
+  setStatus('🎨 Fargelegger MMI-verdier i modellen…');
+  $('btnColorize').disabled = true;
+
+  try {
+    // Først nullstiller vi eksisterende farger
+    await removeColors(false); 
+
+    // Deretter går vi gjennom hver MMI-verdi og fargelegger gruppen
+    for (const [mmi, data] of mmiDataMap.entries()) {
+        if (data.objects.length > 0) {
+            const rgbaColor = hexToRgba(data.color);
+            const selection = [{ modelId: mid, objectRuntimeIds: data.objects }];
+            
+            await API.viewer.setObjectState(
+                { modelObjectIds: selection }, 
+                { color: rgbaColor }
+            );
+        }
+    }
+
+    setStatus('✅ Modell fargelagt etter MMI!', 'ok');
+    $('btnColorize').disabled = false;
+  } catch (e) { 
+      setStatus('❌ Feil ved fargelegging: ' + e.message, 'error'); 
+      $('btnColorize').disabled = false;
+  }
+}
+
+// 6. Fjerner farger
+async function removeColors(updateStatus = true){
+  if (!API) return;
+  try {
+    if (API.viewer.setObjectState) {
+        await API.viewer.setObjectState(undefined, { color: 'reset' });
+    }
+    if (updateStatus) setStatus('⬜ Modellfarger nullstilt.', '');
+  } catch (e) {
+      if (updateStatus) setStatus('❌ Feil ved fjerning av farger: ' + e.message, 'error');
+  }
+}
+
+// Kobler til hendelser (Events)
+$('btnLoad').onclick = loadModels;
+$('btnScan').onclick = scanMmi;
+$('btnColorize').onclick = colorizeModel;
+$('btnUncolor').onclick = removeColors;
+
+// Start tilkobling automatisk
+connect();
+</script>
 </body>
 </html>
