@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>MMI Fargekoder v1.01</title>
+  <title>MMI Fargekoder v1.02</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
@@ -66,7 +66,6 @@
     .mmi-label { font-size: 13px; font-weight: 600; }
     .mmi-count { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-left: 8px; }
     
-    /* Tilpasset input for fargevelger */
     input[type="color"] { -webkit-appearance: none; border: none; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; padding: 0; background: none; }
     input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 4px; }
@@ -102,27 +101,27 @@
 </div>
 
 <main id="mainContent">
-  <div class="empty anim">Hent modeller, velg en modell fra menyen og trykk <strong>Skann MMI</strong>.</div>
+  <div class="empty anim">Hent modeller, velg en modell (eller alle) fra menyen og trykk <strong>Skann MMI</strong>.</div>
 </main>
 
 <script>
 let API = null;
 let allModels = [];
-let mmiDataMap = new Map(); // Lagrer { mmiVerdi: { color: hex, objects: [ids] } }
+let mmiDataMap = new Map(); 
 
 const $ = id => document.getElementById(id);
 const setStatus = (m, c='') => { $('statusBar').textContent = m; $('statusBar').className = c; };
+const lastPathPart = (v) => (v || '').split('/').pop().split('\\').pop(); // Henter filnavn riktig
+const esc = (v) => (v ?? '').toString().replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
 
-// Standardfarger for kjente MMI-verdier
 const defaultColors = {
-    "100": "#cccccc", // Grå
-    "200": "#58a6ff", // Blå
-    "300": "#d29922", // Gul/Oransje
-    "400": "#3fb950", // Grønn
-    "500": "#a371f7"  // Lilla
+    "100": "#cccccc", 
+    "200": "#58a6ff", 
+    "300": "#d29922", 
+    "400": "#3fb950", 
+    "500": "#a371f7"  
 };
 
-// Hjelpefunksjon for å konvertere Hex (#ff0000) til RGBA for Trimble API
 function hexToRgba(hex) {
     let c;
     if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
@@ -131,10 +130,9 @@ function hexToRgba(hex) {
         c= '0x'+c.join('');
         return { r: (c>>16)&255, g: (c>>8)&255, b: c&255, a: 255 };
     }
-    return { r: 128, g: 128, b: 128, a: 255 }; // Fallback grå
+    return { r: 128, g: 128, b: 128, a: 255 }; 
 }
 
-// 1. Initialisering (Samme som i din referansefil)
 async function connect(){
   try {
     API = await window.TrimbleConnectWorkspace.connect(window.parent);
@@ -145,30 +143,48 @@ async function connect(){
   } catch(e) { setStatus('❌ Kunne ikke koble til API.', 'error'); }
 }
 
-// 2. Laster inn modeller (Samme som i din referansefil)
 async function loadModels(){
   if (!API) return;
-  setStatus('⏳ Leser modeller...');
+  setStatus('⏳ Leser modeller og filnavn...');
   try {
+    // Navneoppslag lagt tilbake!
+    const nameMap = new Map();
+    const srcs = [() => API.models?.getModels(), () => API.viewer?.getModels()];
+    for (const src of srcs) {
+      try {
+        const res = await src();
+        const list = Array.isArray(res) ? res : (res?.models || res?.items || []);
+        list.forEach(m => {
+          const id = m.id || m.modelId;
+          const fn = [m.name, m.fileName, m.filename].find(v => /\.ifc/i.test(v));
+          if (id && fn) nameMap.set(id, lastPathPart(fn));
+        });
+      } catch(e){}
+    }
+
     const objs = await API.viewer.getObjects();
     allModels = (objs || []).map(m => {
+      const mid = m.modelId || m.modelid;
       return {
-        id: m.modelId || m.modelid,
-        name: m.name || 'Ukjent modell',
+        id: mid,
+        name: nameMap.get(mid) || m.name || 'Ukjent modell',
         objectIds: (m.objects || []).map(o => o.id || o.objectRuntimeId).filter(id => id != null)
       };
     }).filter(m => m.objectIds.length > 0);
 
-    $('modelSelect').innerHTML = allModels.map(m => `<option value="${m.id}">${m.name} (${m.objectIds.length} obj)</option>`).join('');
+    // Legger til valget for "Alle modeller"
+    let optionsHtml = `<option value="ALL">-- Alle modeller --</option>`;
+    optionsHtml += allModels.map(m => `<option value="${m.id}">${esc(m.name)} (${m.objectIds.length} obj)</option>`).join('');
+    
+    $('modelSelect').innerHTML = optionsHtml;
     $('modelSelect').disabled = false;
     setStatus('✅ Modeller hentet.', 'ok');
   } catch(e) { setStatus('❌ Feil ved henting: ' + e.message, 'error'); }
 }
 
-// 3. Skanner modellen for MMI (Bygget på din chunk-struktur)
 async function scanMmi(){
-  const mid = $('modelSelect').value;
-  if (!mid || !API) return;
+  const selectedMid = $('modelSelect').value;
+  if (!selectedMid || !API) return;
   
   setStatus('⏳ Skanner objekter for MMI-verdier...');
   $('btnColorize').disabled = true; 
@@ -176,33 +192,41 @@ async function scanMmi(){
   mmiDataMap.clear();
   
   try {
-    const model = allModels.find(m => m.id === mid);
-    const CHUNK = 200; // Unngår overbelastning, akkurat som du gjorde
+    // Sjekker om vi skal skanne alle eller bare én valgt
+    const modelsToScan = selectedMid === 'ALL' ? allModels : allModels.filter(m => m.id === selectedMid);
     let objCount = 0;
 
-    for (let i = 0; i < model.objectIds.length; i += CHUNK) {
-      const propsArr = await API.viewer.getObjectProperties(mid, model.objectIds.slice(i, i + CHUNK));
-      
-      propsArr.forEach(o => {
-        const flat = {};
-        // Flater ut egenskapene akkurat som i valideringsverktøyet
-        (o.properties || []).forEach(g => (g.properties || []).forEach(p => flat[p.name] = p.value));
-        
-        let mmiValue = flat["MMI"];
-        if (mmiValue !== undefined && mmiValue !== null && mmiValue.toString().trim() !== "") {
-            mmiValue = mmiValue.toString().trim();
+    for (const model of modelsToScan) {
+        const CHUNK = 200; 
+
+        for (let i = 0; i < model.objectIds.length; i += CHUNK) {
+          const propsArr = await API.viewer.getObjectProperties(model.id, model.objectIds.slice(i, i + CHUNK));
+          
+          propsArr.forEach(o => {
+            const flat = {};
+            (o.properties || []).forEach(g => (g.properties || []).forEach(p => flat[p.name] = p.value));
             
-            if (!mmiDataMap.has(mmiValue)) {
-                mmiDataMap.set(mmiValue, {
-                    color: defaultColors[mmiValue] || "#ff00ff", // Magenta som fallback
-                    objects: []
-                });
+            let mmiValue = flat["MMI"];
+            if (mmiValue !== undefined && mmiValue !== null && mmiValue.toString().trim() !== "") {
+                mmiValue = mmiValue.toString().trim();
+                
+                if (!mmiDataMap.has(mmiValue)) {
+                    mmiDataMap.set(mmiValue, {
+                        color: defaultColors[mmiValue] || "#ff00ff",
+                        objects: [] // Lagrer nå både modell-ID og objekt-ID
+                    });
+                }
+                
+                // Konverterer til Number (Dette løser fargeleggings-feilen!)
+                const rid = Number(o.id || o.objectRuntimeId);
+                if (!isNaN(rid)) {
+                    mmiDataMap.get(mmiValue).objects.push({ mid: model.id, rid: rid });
+                    objCount++;
+                }
             }
-            mmiDataMap.get(mmiValue).objects.push(o.id || o.objectRuntimeId);
-            objCount++;
+          });
+          setStatus(`⏳ Skanner ${esc(model.name)}... ${Math.min(i+CHUNK, model.objectIds.length)} / ${model.objectIds.length}`);
         }
-      });
-      setStatus(`⏳ Skanner... ${Math.min(i+CHUNK, model.objectIds.length)} / ${model.objectIds.length}`);
     }
 
     renderUi();
@@ -215,73 +239,67 @@ async function scanMmi(){
   }
 }
 
-// 4. Bygger UI dynamisk
 function renderUi() {
     if (mmiDataMap.size === 0) {
-        $('mainContent').innerHTML = '<div class="empty anim">Fant ingen MMI-verdier i valgt modell.</div>';
+        $('mainContent').innerHTML = '<div class="empty anim">Fant ingen MMI-verdier.</div>';
         return;
     }
 
-    // Sorterer MMI-verdiene alfabetisk/numerisk
     const sortedKeys = Array.from(mmiDataMap.keys()).sort();
-
-    let html = `
-    <div class="panel anim">
-        <div class="panel-header"><h3>MMI Verdier og Farger</h3></div>
-        <div id="mmiList">
-    `;
+    let html = `<div class="panel anim"><div class="panel-header"><h3>MMI Verdier og Farger</h3></div><div id="mmiList">`;
 
     sortedKeys.forEach(mmi => {
         const data = mmiDataMap.get(mmi);
         html += `
         <div class="mmi-row">
             <div>
-                <span class="mmi-label">MMI ${mmi}</span>
+                <span class="mmi-label">MMI ${esc(mmi)}</span>
                 <span class="mmi-count">(${data.objects.length} objekter)</span>
             </div>
-            <input type="color" data-mmi="${mmi}" value="${data.color}" onchange="updateColor(this)">
-        </div>
-        `;
+            <input type="color" data-mmi="${esc(mmi)}" value="${data.color}" onchange="updateColor(this)">
+        </div>`;
     });
 
     html += `</div></div>`;
     $('mainContent').innerHTML = html;
 }
 
-// Oppdaterer ordboken når brukeren endrer en farge
 window.updateColor = function(inputElement) {
     const mmi = inputElement.getAttribute('data-mmi');
-    const nyFarge = inputElement.value;
     if (mmiDataMap.has(mmi)) {
-        mmiDataMap.get(mmi).color = nyFarge;
+        mmiDataMap.get(mmi).color = inputElement.value;
     }
 };
 
-// 5. Fargelegger ved hjelp av Trimble sin objekt-state funksjon
 async function colorizeModel(){
   if (!API || mmiDataMap.size === 0) return;
-  const mid = $('modelSelect').value;
   setStatus('🎨 Fargelegger MMI-verdier i modellen…');
   $('btnColorize').disabled = true;
 
   try {
-    // Først nullstiller vi eksisterende farger
-    await removeColors(false); 
+    try { await API.viewer.setObjectState(undefined, { color: 'reset' }); } catch(e){}
 
-    // Deretter går vi gjennom hver MMI-verdi og fargelegger gruppen
     for (const [mmi, data] of mmiDataMap.entries()) {
-        if (data.objects.length > 0) {
-            const rgbaColor = hexToRgba(data.color);
-            const selection = [{ modelId: mid, objectRuntimeIds: data.objects }];
-            
-            await API.viewer.setObjectState(
-                { modelObjectIds: selection }, 
-                { color: rgbaColor }
-            );
+        if (data.objects.length === 0) continue;
+
+        // Grupperer objektene per modell-ID før vi sender dem til API-et
+        const modelMap = new Map();
+        for (const obj of data.objects) {
+            if (!modelMap.has(obj.mid)) modelMap.set(obj.mid, []);
+            modelMap.get(obj.mid).push(obj.rid);
         }
+
+        // Oversetter til det formatet API-et forventer
+        const selection = Array.from(modelMap.entries()).map(([modelId, objectRuntimeIds]) => ({ modelId, objectRuntimeIds }));
+        const rgbaColor = hexToRgba(data.color);
+        
+        await API.viewer.setObjectState(
+            { modelObjectIds: selection }, 
+            { color: rgbaColor }
+        );
     }
 
-    setStatus('✅ Modell fargelagt etter MMI!', 'ok');
+    setStatus('✅ Modell(er) fargelagt etter MMI!', 'ok');
     $('btnColorize').disabled = false;
   } catch (e) { 
       setStatus('❌ Feil ved fargelegging: ' + e.message, 'error'); 
@@ -289,26 +307,22 @@ async function colorizeModel(){
   }
 }
 
-// 6. Fjerner farger
-async function removeColors(updateStatus = true){
+async function removeColors(){
   if (!API) return;
   try {
     if (API.viewer.setObjectState) {
         await API.viewer.setObjectState(undefined, { color: 'reset' });
     }
-    if (updateStatus) setStatus('⬜ Modellfarger nullstilt.', '');
+    setStatus('⬜ Modellfarger nullstilt.', '');
   } catch (e) {
-      if (updateStatus) setStatus('❌ Feil ved fjerning av farger: ' + e.message, 'error');
+    setStatus('❌ Feil ved fjerning av farger: ' + e.message, 'error');
   }
 }
 
-// Kobler til hendelser (Events)
 $('btnLoad').onclick = loadModels;
 $('btnScan').onclick = scanMmi;
 $('btnColorize').onclick = colorizeModel;
 $('btnUncolor').onclick = removeColors;
-
-// Start tilkobling automatisk
 connect();
 </script>
 </body>
