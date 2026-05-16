@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>MMI Fargekoder</title>
-    <!-- Importerer Trimble Connect Workspace API -->
-    <script src="https://app.connect.trimble.com/tc/static/workspace-api/workspace-api.js"></script>
+    
+    <!-- Laster inn Trimble Connect Workspace API på riktig måte -->
+    <script src="https://unpkg.com/@trimble-oss/trimble-connect-workspace-api@latest/dist/index.js"></script>
+    
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,143 +46,21 @@
         button:hover {
             background-color: #004675;
         }
+        #status-msg {
+            font-style: italic;
+            color: #555;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
     <h3>MMI Status</h3>
-    <div id="mmi-list">Laster data fra modellen...</div>
-    <button onclick="resetColors()">Nullstill Farger</button>
+    <div id="status-msg">Kobler til Trimble Connect...</div>
+    <div id="mmi-list"></div>
+    <button id="btn-reset">Nullstill Farger</button>
 
-    <script>
-        // Standardiserte farger for MMI-verdier (kan tilpasses)
-        const defaultMmiColors = {
-            "100": "#cccccc", // Grå
-            "200": "#add8e6", // Lyseblå
-            "300": "#0000ff", // Blå
-            "400": "#ffff00", // Gul
-            "500": "#008000"  // Grønn
-        };
-
-        // Ordbok for å lagre hvilke objekter (ID-er) som tilhører hvilken MMI-verdi
-        let mmiObjectMap = {};
-        let workspaceApi;
-
-        // Kjøres når siden lastes
-        window.onload = async function() {
-            try {
-                // 1. Initialiser Trimble Connect API
-                workspaceApi = await WorkspaceAPI.init();
-                
-                // 2. Skann modellen for MMI-verdier (Placeholder for faktisk API-kall)
-                await scanModelForMmi();
-                
-                // 3. Bygg grensesnittet
-                buildUi();
-                
-                // 4. Utfør standard fargelegging
-                applyColorsToViewer();
-
-            } catch (error) {
-                document.getElementById("mmi-list").innerText = "Kunne ikke koble til Trimble Connect API.";
-                console.error("Feil ved initialisering:", error);
-            }
-        };
-
-        async function scanModelForMmi() {
-            // MERK: Siden Trimble Connect API-et krever spesifikke kall avhengig av Pset,
-            // simulerer vi logikken her for forståelsens skyld.
-            // I praksis bruker du: const objects = await workspaceApi.viewer.getObjects();
-            // og itererer gjennom egenskapene (Properties).
-            
-            // Simulert data hentet fra modellen:
-            const simulatedObjects = [
-                { id: "obj1", mmi: "200" },
-                { id: "obj2", mmi: "300" },
-                { id: "obj3", mmi: "200" },
-                { id: "obj4", mmi: "400" }
-            ];
-
-            mmiObjectMap = {};
-
-            simulatedObjects.forEach(obj => {
-                if (!mmiObjectMap[obj.mmi]) {
-                    mmiObjectMap[obj.mmi] = {
-                        color: defaultMmiColors[obj.mmi] || "#ff00ff", // Standard eller Magenta for ukjent
-                        objectIds: []
-                    };
-                }
-                mmiObjectMap[obj.mmi].objectIds.push(obj.id);
-            });
-        }
-
-        function buildUi() {
-            const container = document.getElementById("mmi-list");
-            container.innerHTML = ""; // Tøm Laster-teksten
-
-            // Opprett UI-elementer for hver unike MMI-verdi som ble funnet
-            for (const [mmiValue, data] of Object.entries(mmiObjectMap)) {
-                const div = document.createElement("div");
-                div.className = "mmi-item";
-                
-                const label = document.createElement("span");
-                label.innerText = `MMI ${mmiValue} (${data.objectIds.length} objekter)`;
-                
-                // Vi bruker en enkel nedtrekksmeny for å velge farger
-                const select = document.createElement("select");
-                const colorOptions = [
-                    { name: "Grå", value: "#cccccc" },
-                    { name: "Lyseblå", value: "#add8e6" },
-                    { name: "Blå", value: "#0000ff" },
-                    { name: "Gul", value: "#ffff00" },
-                    { name: "Grønn", value: "#008000" },
-                    { name: "Rød", value: "#ff0000" }
-                ];
-
-                colorOptions.forEach(opt => {
-                    const option = document.createElement("option");
-                    option.value = opt.value;
-                    option.innerText = opt.name;
-                    if (opt.value === data.color) option.selected = true;
-                    select.appendChild(option);
-                });
-
-                // Lytt etter endringer for å oppdatere 3D-vieweren i sanntid
-                select.addEventListener("change", (e) => {
-                    mmiObjectMap[mmiValue].color = e.target.value;
-                    applyColorsToViewer();
-                });
-
-                div.appendChild(label);
-                div.appendChild(select);
-                container.appendChild(div);
-            }
-        }
-
-        function applyColorsToViewer() {
-            // Samle alle fargeinstruksjoner
-            let colorInstructions = [];
-            
-            for (const [mmiValue, data] of Object.entries(mmiObjectMap)) {
-                data.objectIds.forEach(id => {
-                    colorInstructions.push({
-                        objectId: id,
-                        color: data.color
-                    });
-                });
-            }
-
-            // Kall Trimble Connect API for å overstyre farger
-            // Eksempel på API-kall: 
-            // workspaceApi.viewer.setColors(colorInstructions);
-            console.log("Sender fargeoppdatering til viewer:", colorInstructions);
-        }
-
-        function resetColors() {
-            // Fjerner all fargeoverstyring i vieweren
-            // Eksempel på API-kall: workspaceApi.viewer.resetColors();
-            console.log("Nullstiller farger i vieweren.");
-        }
-    </script>
+    <!-- Laster inn logikken som en modul -->
+    <script type="module" src="./app.js"></script>
 </body>
 </html>
