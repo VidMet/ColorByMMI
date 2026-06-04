@@ -2,76 +2,75 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>MMI Fargekoder v1.02</title>
+  <title>MMI Fargekoder v1.0</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+    /* Importerer fontene fra CheckList-designet */
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700&display=swap');
 
+    /* Eksakt samme fargepalett som CheckList */
     :root {
-      --bg:        #0d1117;
-      --surface:   #161b22;
-      --surface2:  #1f2937;
-      --border:    #30363d;
-      --ink:       #e6edf3;
-      --muted:     #7d8590;
-      --green:     #3fb950;
-      --green-dim: #1a3a22;
-      --blue:      #58a6ff;
-      --blue-dim:  #0d2044;
-      --red:       #f85149;
-      --red-dim:   #3a1212;
-      --mono:      'JetBrains Mono', monospace;
-      --sans:      'Syne', sans-serif;
+      --bg: #f3f4f6; --surface: #ffffff; --surface2: #e5e7eb; --border: #d1d5db; 
+      --ink: #111827; --muted: #6b7280; --blue: #1d4ed8; --blue-dim: #dbeafe;
+      --green: #166534; --green-dim: #dcfce7; --yellow: #ca8a04; --yellow-dim: #fef08a;
+      --red: #dc2626; --red-dim: #fee2e2;
+      --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--ink); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    html, body { background: var(--bg); color: var(--ink); font-family: var(--sans); height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-    .header-title { flex: 1; }
-    .header-title h1 { font-size: 16px; font-weight: 800; letter-spacing: -.3px; color: var(--ink); }
-    .header-title p { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
-    .badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
-
-    .btn { font-family: var(--sans); font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; transition: opacity .15s, transform .1s; white-space: nowrap; }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
-    .btn:not(:disabled):hover { opacity: .85; }
-    .btn:not(:disabled):active { transform: scale(.97); }
-    .btn-primary { background: var(--blue); color: #000; }
-    .btn-ghost   { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
-    .btn-colorize { background: #1a3a22; color: var(--green); border: 1px solid #2a5a32; }
-    .btn-unreset  { background: #1f2937; color: var(--muted); border: 1px solid var(--border); }
-
-    #statusBar { font-family: var(--mono); font-size: 11px; padding: 6px 16px; background: var(--blue-dim); color: var(--blue); border-bottom: 1px solid #1a3a5c; flex-shrink: 0; }
-    #statusBar.ok    { background: var(--green-dim); color: var(--green); border-color: #1a3a22; }
-    #statusBar.error { background: var(--red-dim);   color: var(--red);   border-color: #3a1212; }
-
-    #modelBar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; gap: 15px; align-items: center; flex-shrink: 0; }
-    .select-group { display: flex; align-items: center; gap: 8px; flex: 1; }
-    #modelBar label { font-size: 11px; color: var(--muted); font-family: var(--mono); white-space: nowrap; }
-    select { font-family: var(--mono); font-size: 12px; background: var(--surface2); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; width: 100%; min-width: 0; }
-    select:disabled { opacity: .4; }
-
-    main { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
-
-    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-    .panel-header { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-    .panel-header h3 { font-size: 13px; font-weight: 700; flex: 1; }
+    /* Header styling */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .header-info h1 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .header-info h1 .version { font-family: var(--mono); font-size: 11px; font-weight: normal; color: var(--muted); background: var(--bg); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
+    .header-info p { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
     
-    .mmi-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); }
-    .mmi-row:last-child { border-bottom: none; }
-    .mmi-label { font-size: 13px; font-weight: 600; }
+    /* Toolbar styling */
+    .toolbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+    .toolbar select, .toolbar input, .btn { font-family: var(--sans); font-size: 12px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+    
+    /* Knapper */
+    .btn { font-weight: 600; background: var(--surface2); transition: background 0.2s; border: 1px solid var(--border); color: var(--ink); }
+    .btn:hover:not(:disabled) { background: var(--border); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--blue); color: white; border: none; }
+    .btn-primary:hover:not(:disabled) { background: #1e40af; }
+    .btn-outline { background: transparent; border: 1px solid var(--blue); color: var(--blue); }
+    .btn-outline:hover:not(:disabled) { background: var(--blue-dim); }
+    
+    /* Tillegg for spesifikke fargeleggingsknapper */
+    .btn-colorize { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .btn-colorize:hover:not(:disabled) { background: #bbf7d0; }
+
+    /* Statusbar */
+    #statusBar { font-family: var(--mono); font-size: 11px; padding: 4px 16px; background: var(--blue-dim); color: var(--blue); border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background 0.3s, color 0.3s; }
+    #statusBar.ok { background: var(--green-dim); color: var(--green); border-color: #bbf7d0; }
+    #statusBar.error { background: var(--red-dim); color: var(--red); border-color: #fecaca; }
+
+    /* Hovedområde */
+    main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Paneler og lister (Samme som sjekkliste-kategorier) */
+    .kategori-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; overflow: hidden; }
+    .kategori-header { background: var(--surface2); padding: 10px 14px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+    .kategori-body { display: flex; flex-direction: column; }
+    
+    .punkt-container { border-top: 1px solid var(--border); padding: 12px 14px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; background: var(--surface); }
+    .punkt-tekst-tittel { font-size: 13px; font-weight: 600; color: var(--ink); }
     .mmi-count { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-left: 8px; }
-    
+
+    /* Fargevelger input-tilpasning */
     input[type="color"] { -webkit-appearance: none; border: none; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; padding: 0; background: none; }
     input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 4px; }
 
+    /* Div states */
     .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
     .anim { animation: fadeUp .3s ease both; }
@@ -80,28 +79,32 @@
 <body>
 
 <header>
-  <div class="header-title">
-    <h1>MMI Fargekoder v1.02</h1>
-    <p>Dynamisk fargelegging basert på MMI</p>
+  <div class="header-info">
+    <h1>MMI Fargekoder <span class="version">v1.0</span></h1>
+    <p>Dynamisk fargelegging av objekter basert på MMI-egenskaper</p>
   </div>
-  <span class="badge" id="modelBadge">Frakoblet</span>
-  <button class="btn btn-ghost" id="btnLoad" disabled>Hent modeller</button>
-  <button class="btn btn-primary" id="btnScan" disabled>▶ Skann MMI</button>
-  <button class="btn btn-colorize" id="btnColorize" disabled>🎨 Fargelegg</button>
-  <button class="btn btn-unreset" id="btnUncolor" disabled>⬜ Nullstill Farger</button>
 </header>
 
-<div id="statusBar">Kobler til Trimble Connect...</div>
-
-<div id="modelBar">
-  <div class="select-group">
-    <label>Modell:</label>
-    <select id="modelSelect" disabled><option value="">– Laster... –</option></select>
-  </div>
+<div class="toolbar">
+  <button class="btn btn-outline" id="btnLoad" disabled>📦 Hent modeller</button>
+  
+  <div style="border-left: 1px solid var(--border); height: 24px; margin: 0 5px;"></div>
+  
+  <select id="modelSelect" disabled style="font-weight: 600; color: var(--blue); min-width: 200px;">
+    <option value="">– Laster... –</option>
+  </select>
+  
+  <div style="border-left: 1px solid var(--border); height: 24px; margin: 0 5px;"></div>
+  
+  <button class="btn btn-primary" id="btnScan" disabled>🔍 Skann MMI i modell</button>
+  <button class="btn btn-colorize" id="btnColorize" disabled>🎨 Fargelegg objekter</button>
+  <button class="btn" id="btnUncolor" disabled>⬜ Nullstill farger</button>
 </div>
 
+<div id="statusBar">Kobler til Trimble Connect Workspace API...</div>
+
 <main id="mainContent">
-  <div class="empty anim">Hent modeller, velg en modell (eller alle) fra menyen og trykk <strong>Skann MMI</strong>.</div>
+  <div class="empty anim">Hent modeller, velg en modell (eller alle) fra verktøylinjen, og trykk <strong>Skann MMI</strong>.</div>
 </main>
 
 <script>
@@ -110,15 +113,19 @@ let allModels = [];
 let mmiDataMap = new Map(); 
 
 const $ = id => document.getElementById(id);
-const setStatus = (m, c='') => { $('statusBar').textContent = m; $('statusBar').className = c; };
-const lastPathPart = (v) => (v || '').split('/').pop().split('\\').pop(); // Henter filnavn riktig
+const setStatus = (m, statusClass = '') => { 
+    const bar = $('statusBar');
+    bar.textContent = m; 
+    bar.className = statusClass; 
+};
+const lastPathPart = (v) => (v || '').split('/').pop().split('\\').pop();
 const esc = (v) => (v ?? '').toString().replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
 
 const defaultColors = {
     "100": "#cccccc", 
     "200": "#58a6ff", 
-    "300": "#d29922", 
-    "400": "#3fb950", 
+    "300": "#ca8a04", 
+    "400": "#166534", 
     "500": "#a371f7"  
 };
 
@@ -138,16 +145,16 @@ async function connect(){
     API = await window.TrimbleConnectWorkspace.connect(window.parent);
     $('btnLoad').disabled = false;
     $('btnScan').disabled = false;
-    setStatus('✅ Tilkoblet Trimble Connect.', 'ok');
-    $('modelBadge').textContent = 'Tilkoblet';
-  } catch(e) { setStatus('❌ Kunne ikke koble til API.', 'error'); }
+    setStatus('✅ Tilkoblet Trimble Connect Workspace API', 'ok');
+  } catch(e) { 
+      setStatus('❌ Kunne ikke koble til API. Kjører kanskje utenfor 3D-visningen?', 'error'); 
+  }
 }
 
 async function loadModels(){
   if (!API) return;
   setStatus('⏳ Leser modeller og filnavn...');
   try {
-    // Navneoppslag lagt tilbake!
     const nameMap = new Map();
     const srcs = [() => API.models?.getModels(), () => API.viewer?.getModels()];
     for (const src of srcs) {
@@ -156,7 +163,8 @@ async function loadModels(){
         const list = Array.isArray(res) ? res : (res?.models || res?.items || []);
         list.forEach(m => {
           const id = m.id || m.modelId;
-          const fn = [m.name, m.fileName, m.filename].find(v => /\.ifc/i.test(v));
+          const fn = [m.name, m.fileName, m.filename].find(v => v && typeof v === 'string' && /\.(ifc|trb|dwg|rvt|skp|tekla|dxf)/i.test(v)) 
+                     || [m.name, m.fileName, m.filename].find(v => v && typeof v === 'string');
           if (id && fn) nameMap.set(id, lastPathPart(fn));
         });
       } catch(e){}
@@ -172,13 +180,12 @@ async function loadModels(){
       };
     }).filter(m => m.objectIds.length > 0);
 
-    // Legger til valget for "Alle modeller"
-    let optionsHtml = `<option value="ALL">-- Alle modeller --</option>`;
+    let optionsHtml = `<option value="ALL">-- Alle modeller i visningen --</option>`;
     optionsHtml += allModels.map(m => `<option value="${m.id}">${esc(m.name)} (${m.objectIds.length} obj)</option>`).join('');
     
     $('modelSelect').innerHTML = optionsHtml;
     $('modelSelect').disabled = false;
-    setStatus('✅ Modeller hentet.', 'ok');
+    setStatus(`✅ Hentet ${allModels.length} modeller.`, 'ok');
   } catch(e) { setStatus('❌ Feil ved henting: ' + e.message, 'error'); }
 }
 
@@ -192,7 +199,6 @@ async function scanMmi(){
   mmiDataMap.clear();
   
   try {
-    // Sjekker om vi skal skanne alle eller bare én valgt
     const modelsToScan = selectedMid === 'ALL' ? allModels : allModels.filter(m => m.id === selectedMid);
     let objCount = 0;
 
@@ -213,11 +219,10 @@ async function scanMmi(){
                 if (!mmiDataMap.has(mmiValue)) {
                     mmiDataMap.set(mmiValue, {
                         color: defaultColors[mmiValue] || "#ff00ff",
-                        objects: [] // Lagrer nå både modell-ID og objekt-ID
+                        objects: [] 
                     });
                 }
                 
-                // Konverterer til Number (Dette løser fargeleggings-feilen!)
                 const rid = Number(o.id || o.objectRuntimeId);
                 if (!isNaN(rid)) {
                     mmiDataMap.get(mmiValue).objects.push({ mid: model.id, rid: rid });
@@ -230,33 +235,42 @@ async function scanMmi(){
     }
 
     renderUi();
-    setStatus(`✅ Fant ${mmiDataMap.size} ulike MMI-verdier på tvers av ${objCount} objekter.`, 'ok');
+    setStatus(`✅ Skann fullført. Fant ${mmiDataMap.size} ulike MMI-verdier knyttet til ${objCount} objekter.`, 'ok');
     $('btnColorize').disabled = false;
     $('btnUncolor').disabled = false;
   } catch(e) { 
-      setStatus('❌ Feil: ' + e.message, 'error'); 
+      setStatus('❌ Feil under skanning: ' + e.message, 'error'); 
       console.error(e); 
   }
 }
 
 function renderUi() {
     if (mmiDataMap.size === 0) {
-        $('mainContent').innerHTML = '<div class="empty anim">Fant ingen MMI-verdier.</div>';
+        $('mainContent').innerHTML = '<div class="empty anim">Fant ingen MMI-verdier i egenskapene.</div>';
         return;
     }
 
     const sortedKeys = Array.from(mmiDataMap.keys()).sort();
-    let html = `<div class="panel anim"><div class="panel-header"><h3>MMI Verdier og Farger</h3></div><div id="mmiList">`;
+    
+    // Bygger opp UI med ".kategori-panel" designet
+    let html = `
+    <div class="kategori-panel anim">
+        <div class="kategori-header">
+            <span>▼ Funnet MMI Verdier</span>
+            <span style="font-family:var(--mono); color:var(--muted); font-size:11px;">${sortedKeys.length} verdier</span>
+        </div>
+        <div class="kategori-body">
+    `;
 
     sortedKeys.forEach(mmi => {
         const data = mmiDataMap.get(mmi);
         html += `
-        <div class="mmi-row">
+        <div class="punkt-container">
             <div>
-                <span class="mmi-label">MMI ${esc(mmi)}</span>
+                <span class="punkt-tekst-tittel">MMI ${esc(mmi)}</span>
                 <span class="mmi-count">(${data.objects.length} objekter)</span>
             </div>
-            <input type="color" data-mmi="${esc(mmi)}" value="${data.color}" onchange="updateColor(this)">
+            <input type="color" data-mmi="${esc(mmi)}" value="${data.color}" onchange="updateColor(this)" title="Endre farge for MMI ${esc(mmi)}">
         </div>`;
     });
 
@@ -273,7 +287,7 @@ window.updateColor = function(inputElement) {
 
 async function colorizeModel(){
   if (!API || mmiDataMap.size === 0) return;
-  setStatus('🎨 Fargelegger MMI-verdier i modellen…');
+  setStatus('🎨 Sender fargeoverstyringer til 3D-visningen…');
   $('btnColorize').disabled = true;
 
   try {
@@ -282,14 +296,12 @@ async function colorizeModel(){
     for (const [mmi, data] of mmiDataMap.entries()) {
         if (data.objects.length === 0) continue;
 
-        // Grupperer objektene per modell-ID før vi sender dem til API-et
         const modelMap = new Map();
         for (const obj of data.objects) {
             if (!modelMap.has(obj.mid)) modelMap.set(obj.mid, []);
             modelMap.get(obj.mid).push(obj.rid);
         }
 
-        // Oversetter til det formatet API-et forventer
         const selection = Array.from(modelMap.entries()).map(([modelId, objectRuntimeIds]) => ({ modelId, objectRuntimeIds }));
         const rgbaColor = hexToRgba(data.color);
         
@@ -299,7 +311,7 @@ async function colorizeModel(){
         );
     }
 
-    setStatus('✅ Modell(er) fargelagt etter MMI!', 'ok');
+    setStatus('✅ Modell(er) fargelagt etter valgt oppsett!', 'ok');
     $('btnColorize').disabled = false;
   } catch (e) { 
       setStatus('❌ Feil ved fargelegging: ' + e.message, 'error'); 
@@ -313,16 +325,19 @@ async function removeColors(){
     if (API.viewer.setObjectState) {
         await API.viewer.setObjectState(undefined, { color: 'reset' });
     }
-    setStatus('⬜ Modellfarger nullstilt.', '');
+    setStatus('⬜ Modellfarger ble nullstilt.', 'ok');
   } catch (e) {
     setStatus('❌ Feil ved fjerning av farger: ' + e.message, 'error');
   }
 }
 
+// Kobler knapper til funksjoner
 $('btnLoad').onclick = loadModels;
 $('btnScan').onclick = scanMmi;
 $('btnColorize').onclick = colorizeModel;
 $('btnUncolor').onclick = removeColors;
+
+// Koble til API ved oppstart
 connect();
 </script>
 </body>
