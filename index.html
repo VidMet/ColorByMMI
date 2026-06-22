@@ -8,27 +8,48 @@
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   
   <style>
-    /* Importerer fontene fra CheckList-designet */
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700&display=swap');
 
-    /* Eksakt samme fargepalett som CheckList */
     :root {
       --bg: #f3f4f6; --surface: #ffffff; --surface2: #e5e7eb; --border: #d1d5db; 
       --ink: #111827; --muted: #6b7280; --blue: #1d4ed8; --blue-dim: #dbeafe;
       --green: #166534; --green-dim: #dcfce7; --yellow: #ca8a04; --yellow-dim: #fef08a;
       --red: #dc2626; --red-dim: #fee2e2;
+      
+      /* Statusfarger for prikken i headeren */
+      --ok:        #22a06b;
+      --warn:      #f79009;
+      --bad:       #d92d20;
+      
       --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: var(--bg); color: var(--ink); font-family: var(--sans); height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    html, body { background: var(--bg); color: var(--ink); font-family: var(--sans); height: 100%; display: flex; flex-direction: column; overflow: hidden; min-width: 380px; }
 
-    /* Header styling */
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-    .header-info h1 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .header-info h1 .version { font-family: var(--mono); font-size: 11px; font-weight: normal; color: var(--muted); background: var(--bg); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
-    .header-info p { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+    /* --- NY HEADER STYLING --- */
+    .topbar {
+      height: 92px; background: #fff; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 18px; padding: 10px 18px; flex: 0 0 auto;
+    }
+    .logo-card {
+      width: 145px; height: 68px; border: 1px solid var(--border); border-radius: 12px;
+      background: #fff; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(16,24,40,.08); overflow: hidden; flex-shrink: 0;
+    }
+    .logo-card img { max-width: 128px; max-height: 50px; object-fit: contain; }
     
+    .app-title { display: flex; flex-direction: column; line-height: 1.2; }
+    .app-title b { font-size: 18px; color: #0050b5; }
+    .app-title span { font-size: 14px; font-weight: 600; }
+    .app-title em { font-size: 12px; color: #667085; font-style: normal; }
+    
+    .status { margin-left: auto; display: flex; align-items: center; gap: 7px; color: #667085; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #98a2b3; flex-shrink: 0; }
+    .dot.live { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    .dot.warn { background: var(--warn); }
+    .dot.error { background: var(--bad); }
+
     /* Toolbar styling */
     .toolbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
     .toolbar select, .toolbar input, .btn { font-family: var(--sans); font-size: 12px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
@@ -39,22 +60,15 @@
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-primary { background: var(--blue); color: white; border: none; }
     .btn-primary:hover:not(:disabled) { background: #1e40af; }
-    .btn-outline { background: transparent; border: 1px solid var(--blue); color: var(--blue); }
-    .btn-outline:hover:not(:disabled) { background: var(--blue-dim); }
-    
-    /* Tillegg for spesifikke fargeleggingsknapper */
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--ink); }
+    .btn-outline:hover:not(:disabled) { background: var(--surface2); }
     .btn-colorize { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
     .btn-colorize:hover:not(:disabled) { background: #bbf7d0; }
-
-    /* Statusbar */
-    #statusBar { font-family: var(--mono); font-size: 11px; padding: 4px 16px; background: var(--blue-dim); color: var(--blue); border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background 0.3s, color 0.3s; }
-    #statusBar.ok { background: var(--green-dim); color: var(--green); border-color: #bbf7d0; }
-    #statusBar.error { background: var(--red-dim); color: var(--red); border-color: #fecaca; }
 
     /* Hovedområde */
     main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 
-    /* Paneler og lister (Samme som sjekkliste-kategorier) */
+    /* Paneler og lister */
     .kategori-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; overflow: hidden; }
     .kategori-header { background: var(--surface2); padding: 10px 14px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center; user-select: none; }
     .kategori-body { display: flex; flex-direction: column; }
@@ -74,20 +88,37 @@
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
     .anim { animation: fadeUp .3s ease both; }
+
+    /* Responsiv header */
+    @media(max-width:760px) {
+      .topbar { height: auto; padding: 8px; flex-wrap: wrap; }
+      .logo-card { width: 120px; height: 58px; }
+      .app-title b { font-size: 15px; }
+      .app-title span { font-size: 12px; }
+      .app-title em { display: none; }
+    }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="header-info">
-    <h1>MMI Fargekoder <span class="version">v1.0</span></h1>
-    <p>Dynamisk fargelegging av objekter basert på MMI-egenskaper</p>
+<!-- NY HEADER STRUKTUR -->
+<header class="topbar">
+  <div class="logo-card">
+    <img src="norconsult-logo-black.png" alt="Norconsult">
+  </div>
+  <div class="app-title">
+    <b>MMI Fargekoder v1.0</b>
+    <span>Norconsult Norge</span>
+    <em>Developed by Norconsult, AI-assisted development. Kontaktperson: Vidar.Metveit@norconsult.com</em>
+  </div>
+  <div class="status">
+    <span id="statusText">Starter…</span>
+    <span id="statusDot" class="dot"></span>
   </div>
 </header>
 
 <div class="toolbar">
   <button class="btn btn-outline" id="btnLoad" disabled>📦 Hent modeller</button>
-  
   <div style="border-left: 1px solid var(--border); height: 24px; margin: 0 5px;"></div>
   
   <select id="modelSelect" disabled style="font-weight: 600; color: var(--blue); min-width: 200px;">
@@ -101,8 +132,6 @@
   <button class="btn" id="btnUncolor" disabled>⬜ Nullstill farger</button>
 </div>
 
-<div id="statusBar">Kobler til Trimble Connect Workspace API...</div>
-
 <main id="mainContent">
   <div class="empty anim">Hent modeller, velg en modell (eller alle) fra verktøylinjen, og trykk <strong>Skann MMI</strong>.</div>
 </main>
@@ -113,11 +142,17 @@ let allModels = [];
 let mmiDataMap = new Map(); 
 
 const $ = id => document.getElementById(id);
-const setStatus = (m, statusClass = '') => { 
-    const bar = $('statusBar');
-    bar.textContent = m; 
-    bar.className = statusClass; 
+
+// Oppdatert statusfunksjon for å styre elementene i den nye headeren
+const setStatus = (m, c='') => { 
+    $('statusText').textContent = m; 
+    let dotClass = 'dot';
+    if (c === 'ok') dotClass = 'dot live';
+    else if (c === 'error') dotClass = 'dot error';
+    else if (c === 'warn') dotClass = 'dot warn';
+    $('statusDot').className = dotClass; 
 };
+
 const lastPathPart = (v) => (v || '').split('/').pop().split('\\').pop();
 const esc = (v) => (v ?? '').toString().replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
 
@@ -145,15 +180,15 @@ async function connect(){
     API = await window.TrimbleConnectWorkspace.connect(window.parent);
     $('btnLoad').disabled = false;
     $('btnScan').disabled = false;
-    setStatus('✅ Tilkoblet Trimble Connect Workspace API', 'ok');
+    setStatus('Klar for bruk', 'ok');
   } catch(e) { 
-      setStatus('❌ Kunne ikke koble til API. Kjører kanskje utenfor 3D-visningen?', 'error'); 
+      setStatus('Feil ved tilkobling til API', 'error'); 
   }
 }
 
 async function loadModels(){
   if (!API) return;
-  setStatus('⏳ Leser modeller og filnavn...');
+  setStatus('Leser modeller...', 'warn');
   try {
     const nameMap = new Map();
     const srcs = [() => API.models?.getModels(), () => API.viewer?.getModels()];
@@ -185,15 +220,15 @@ async function loadModels(){
     
     $('modelSelect').innerHTML = optionsHtml;
     $('modelSelect').disabled = false;
-    setStatus(`✅ Hentet ${allModels.length} modeller.`, 'ok');
-  } catch(e) { setStatus('❌ Feil ved henting: ' + e.message, 'error'); }
+    setStatus(`Hentet ${allModels.length} modeller`, 'ok');
+  } catch(e) { setStatus('Feil ved henting', 'error'); }
 }
 
 async function scanMmi(){
   const selectedMid = $('modelSelect').value;
   if (!selectedMid || !API) return;
   
-  setStatus('⏳ Skanner objekter for MMI-verdier...');
+  setStatus('Skanner etter MMI-verdier...', 'warn');
   $('btnColorize').disabled = true; 
   $('btnUncolor').disabled = true;
   mmiDataMap.clear();
@@ -230,16 +265,15 @@ async function scanMmi(){
                 }
             }
           });
-          setStatus(`⏳ Skanner ${esc(model.name)}... ${Math.min(i+CHUNK, model.objectIds.length)} / ${model.objectIds.length}`);
         }
     }
 
     renderUi();
-    setStatus(`✅ Skann fullført. Fant ${mmiDataMap.size} ulike MMI-verdier knyttet til ${objCount} objekter.`, 'ok');
+    setStatus(`Skann fullført (${mmiDataMap.size} verdier funnet)`, 'ok');
     $('btnColorize').disabled = false;
     $('btnUncolor').disabled = false;
   } catch(e) { 
-      setStatus('❌ Feil under skanning: ' + e.message, 'error'); 
+      setStatus('Feil under skanning', 'error'); 
       console.error(e); 
   }
 }
@@ -252,7 +286,6 @@ function renderUi() {
 
     const sortedKeys = Array.from(mmiDataMap.keys()).sort();
     
-    // Bygger opp UI med ".kategori-panel" designet
     let html = `
     <div class="kategori-panel anim">
         <div class="kategori-header">
@@ -287,7 +320,7 @@ window.updateColor = function(inputElement) {
 
 async function colorizeModel(){
   if (!API || mmiDataMap.size === 0) return;
-  setStatus('🎨 Sender fargeoverstyringer til 3D-visningen…');
+  setStatus('Fargelegger objekter...', 'warn');
   $('btnColorize').disabled = true;
 
   try {
@@ -311,10 +344,10 @@ async function colorizeModel(){
         );
     }
 
-    setStatus('✅ Modell(er) fargelagt etter valgt oppsett!', 'ok');
+    setStatus('Objekter fargelagt', 'ok');
     $('btnColorize').disabled = false;
   } catch (e) { 
-      setStatus('❌ Feil ved fargelegging: ' + e.message, 'error'); 
+      setStatus('Feil ved fargelegging', 'error'); 
       $('btnColorize').disabled = false;
   }
 }
@@ -325,19 +358,17 @@ async function removeColors(){
     if (API.viewer.setObjectState) {
         await API.viewer.setObjectState(undefined, { color: 'reset' });
     }
-    setStatus('⬜ Modellfarger ble nullstilt.', 'ok');
+    setStatus('Farger nullstilt', 'ok');
   } catch (e) {
-    setStatus('❌ Feil ved fjerning av farger: ' + e.message, 'error');
+    setStatus('Feil ved nullstilling', 'error');
   }
 }
 
-// Kobler knapper til funksjoner
 $('btnLoad').onclick = loadModels;
 $('btnScan').onclick = scanMmi;
 $('btnColorize').onclick = colorizeModel;
 $('btnUncolor').onclick = removeColors;
 
-// Koble til API ved oppstart
 connect();
 </script>
 </body>
