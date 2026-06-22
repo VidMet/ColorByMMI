@@ -1,7 +1,7 @@
 {
-  "title": "Mengdeoppsett",
+  "title": "ColorByMMI",
   "icon": "https://vidmet.github.io/ColorByMMI/brush-icon.png",
   "url": "https://vidmet.github.io/ColorByMMI/index.html",
-  "description": "Mengdeoversikt basert på prosesskode",
+  "description": "Fargelegging av objekter basert på MMI-verdier",
   "enabled": true
 }
